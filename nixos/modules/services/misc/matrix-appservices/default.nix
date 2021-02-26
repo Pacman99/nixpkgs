@@ -14,17 +14,8 @@ let
       dataDir = "/var/lib/matrix-as-${name}";
       registrationFile = "${dataDir}/${name}-registration.yaml";
       # Replace all references to $DIR to the dat directory
-      settingsData = settingsFormat.generate "config.json"
-        (mapAttrsRecursive
-          (_: v:
-            if builtins.isString v then
-              (builtins.replaceStrings [ "$DIR" ] [ dataDir ] v) else v)
-          settings);
+      settingsData = settingsFormat.generate "config.json" settings;
       settingsFile = "${dataDir}/config.json";
-      setVars = ''
-        SETTINGS_FILE=${settingsFile}
-        REGISTRATION_FILE=${registrationFile}
-      '';
       serviceDeps = [ "network-online.target" ] ++ serviceDependencies
         ++ (optionals (cfg.homeserver != null) [ "${cfg.homeserver}.service" ]);
     in
@@ -35,21 +26,25 @@ let
       wants = serviceDeps;
       after = serviceDeps;
 
+      environment = {
+        DIR = dataDir;
+        SETTINGS_FILE = settingsFile;
+        REGISTRATION_FILE = registrationFile;
+      };
+
       preStart = ''
-        cp ${settingsData} ${settingsFile}
+        ${pkgs.envsubst}/bin/envsubst \
+          -i ${settingsData} \
+          -o ${settingsFile}
         chmod 640 ${settingsFile}
 
         if [ ! -f '${registrationFile}' ]; then
-          ${setVars}
           ${registerScript}
           chmod 640 ${registrationFile}
         fi
       '';
 
-      script = ''
-        ${setVars}
-        ${startupScript}
-      '';
+      script = startupScript;
 
       serviceConfig = {
         Type = "simple";

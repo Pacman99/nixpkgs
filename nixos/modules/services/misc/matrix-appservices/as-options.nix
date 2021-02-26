@@ -51,13 +51,15 @@ types.submodule ({ config, ... }:
         '';
         description = ''
           Appservice configuration as a Nix attribute set.
-          All references to $DIR will be replaced with the appservice's data directory.
+          All environment variables will be substituted,
+          including $DIR which refers to the appservice's data directory.
+
+          Secret tokens, should be specified in serviceConfig.EnvironmentFile
+          instead of this world-readable attribute set.
 
           Configuration options should match those described as per your appservice's settings
           Check out the confg sample for this.
 
-          Secret tokens should be specified using serviceConfig.EnvironmentFile
-          instead of this world-readable attribute set.
         '';
       };
 
