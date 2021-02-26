@@ -1,4 +1,6 @@
 { systemConfig, asConfig, lib, pkgs, ... }:
+
+with lib;
 let
   inherit (systemConfig.services.matrix-appservices)
     homeserverURL
@@ -12,6 +14,64 @@ let
       ${pkgs.yq}/bin/yq . $file > $out
     '')
   );
+
+  mautrix = {
+    # mautrix stores the registration tokens in the config file
+    registerScript = ''
+      ${command} --generate-registration \
+        --no-update \
+        --config=$SETTINGS_FILE \
+        --registration=$REGISTRATION_FILE
+    '';
+
+    startupScript = ''
+      AS_TOKEN=$(cat $REGISTRATION_FILE | ${pkgs.yq}/bin/yq .as_token)
+      HS_TOKEN=$(cat $REGISTRATION_FILE | ${pkgs.yq}/bin/yq .hs_token)
+      cat $SETTINGS_FILE \
+        | ${pkgs.jq}/bin/jq 'setpath(["appservice", "as_token"]; '$AS_TOKEN')' \
+        | ${pkgs.jq}/bin/jq 'setpath(["appservice", "hs_token"]; '$HS_TOKEN')' \
+        > $SETTINGS_FILE
+
+      ${command} --config=$SETTINGS_FILE \
+        --registration=$REGISTRATION_FILE
+    '';
+
+    settings =
+      let
+        defaultConfig = getDefaultConfig "example-config.yaml";
+      in
+      {
+        homeserver = {
+          address = homeserverURL;
+          domain = homeserverDomain;
+        };
+
+        appservice = {
+          inherit (defaultConfig.appservice)
+            address
+            hostname
+            port
+            id;
+
+          state_store_path = "$DIR/mx-state.json";
+
+          database = {
+            type = "sqlite3";
+            uri = "$DIR/database.db";
+          };
+        };
+
+        bridge = {
+          inherit (defaultConfig.bridge)
+            username_template
+            displayname_template
+            command_prefix;
+
+          permissions.${homeserverDomain} = "user";
+        };
+      };
+  };
+
 in
 {
   other = {
@@ -85,64 +145,34 @@ in
 
   };
 
-  mautrix = {
-    # mautrix stores the registration tokens in the config file
-    registerScript = ''
-      cp $SETTINGS_FILE config.json
-      chmod 640 config.json
-      ${command} -g -c config.json -r $REGISTRATION_FILE
-    '';
-
-    startupScript = ''
-      AS_TOKEN=$(cat $REGISTRATION_FILE | ${pkgs.yq}/bin/yq .as_token)
-      HS_TOKEN=$(cat $REGISTRATION_FILE | ${pkgs.yq}/bin/yq .hs_token)
-      cat $SETTINGS_FILE \
-        | ${pkgs.jq}/bin/jq 'setpath(["appservice", "as_token"]; '$AS_TOKEN')' \
-        | ${pkgs.jq}/bin/jq 'setpath(["appservice", "hs_token"]; '$HS_TOKEN')' \
-        > config.json
-      ${command} -c config.json -r $REGISTRATION_FILE
-    '';
-
-    settings =
-      let
+  mautrix-go = {
+    inherit (mautrix) registerScript startupScript;
+    settings = let
         defaultConfig = getDefaultConfig "example-config.yaml";
       in
-      {
-        homeserver = {
-          address = homeserverURL;
-          domain = homeserverDomain;
-        };
-
-        appservice = {
-          inherit (defaultConfig.appservice)
-            address
-            hostname
-            port
-            id;
-
-          state_store_path = "$DIR/mx-state.json";
-
-          database = {
-            type = "sqlite3";
-            uri = "$DIR/database.db";
-          };
-        };
-
-        bridge = {
-          inherit (defaultConfig.bridge)
-            username_template
-            displayname_template
-            command_prefix;
-
-          permissions.${homeserverDomain} = "user";
-        };
-      };
+      recursiveUpdate mautrix.settings
+      { appservice.bot = defaultConfig.appservice.bot; };
 
     description = ''
-      For bridges based on the mautrix library. The settings are configured to use
-      a sqlite database. The startupScript will create a new config file on every run
-      to set the tokens, because mautrix requires them to be in the config file.
-      Make sure to set the bot's username, a required setting that is different between mautrix bots.
+      The settings are configured to use a sqlite database. The startupScript will
+      create a new config file on every run to set the tokens, because mautrix
+      requires them to be in the config file.
+    '';
+  };
+
+  mautrix-python = {
+    inherit (mautrix) registerScript;
+    settings = let
+        defaultConfig = getDefaultConfig "example-config.yaml";
+      in
+      recursiveUpdate mautrix.settings
+      { appservice.bot_username = defaultConfig.appservice.bot_username; };
+
+    startupScript = optionalString (hasAttrByPath [ "alembic" ] package)
+      "${package.alembic}/bin/alembic -x config=$SETTINGS_FILE upgrade head\n"
+      + mautrix.startupScript;
+    description = ''
+      Same properties as mautrix-go. This will also upgrade the database on every run
     '';
   };
 
