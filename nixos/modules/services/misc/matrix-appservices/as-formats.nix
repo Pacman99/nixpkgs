@@ -19,7 +19,6 @@ let
     # mautrix stores the registration tokens in the config file
     registerScript = ''
       ${command} --generate-registration \
-        --no-update \
         --config=$SETTINGS_FILE \
         --registration=$REGISTRATION_FILE
     '';
@@ -27,7 +26,8 @@ let
     startupScript = ''
       AS_TOKEN=$(cat $REGISTRATION_FILE | ${pkgs.yq}/bin/yq .as_token)
       HS_TOKEN=$(cat $REGISTRATION_FILE | ${pkgs.yq}/bin/yq .hs_token)
-      cat $SETTINGS_FILE \
+      mv $SETTINGS_FILE $SETTINGS_FILE.tmp
+      cat $SETTINGS_FILE.tmp \
         | ${pkgs.jq}/bin/jq 'setpath(["appservice", "as_token"]; '$AS_TOKEN')' \
         | ${pkgs.jq}/bin/jq 'setpath(["appservice", "hs_token"]; '$HS_TOKEN')' \
         > $SETTINGS_FILE

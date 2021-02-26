@@ -14,12 +14,13 @@ let
       dataDir = "/var/lib/matrix-as-${name}";
       registrationFile = "${dataDir}/${name}-registration.yaml";
       # Replace all references to $DIR to the dat directory
-      settingsFile = settingsFormat.generate "config.json"
+      settingsData = settingsFormat.generate "config.json"
         (mapAttrsRecursive
           (_: v:
             if builtins.isString v then
               (builtins.replaceStrings [ "$DIR" ] [ dataDir ] v) else v)
           settings);
+      settingsFile = "${dataDir}/config.json";
       setVars = ''
         SETTINGS_FILE=${settingsFile}
         REGISTRATION_FILE=${registrationFile}
@@ -35,6 +36,9 @@ let
       after = serviceDeps;
 
       preStart = ''
+        cp ${settingsData} ${settingsFile}
+        chmod 640 ${settingsFile}
+
         if [ ! -f '${registrationFile}' ]; then
           ${setVars}
           ${registerScript}
