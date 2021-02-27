@@ -147,11 +147,12 @@ in
 
   mautrix-go = {
     inherit (mautrix) registerScript startupScript;
-    settings = let
+    settings =
+      let
         defaultConfig = getDefaultConfig "example-config.yaml";
       in
       recursiveUpdate mautrix.settings
-      { appservice.bot = defaultConfig.appservice.bot; };
+        { appservice.bot = defaultConfig.appservice.bot; };
 
     description = ''
       The settings are configured to use a sqlite database. The startupScript will
@@ -162,15 +163,16 @@ in
 
   mautrix-python = {
     inherit (mautrix) registerScript;
-    settings = let
+    settings =
+      let
         defaultConfig = getDefaultConfig "example-config.yaml";
       in
       recursiveUpdate mautrix.settings
-      { appservice.bot_username = defaultConfig.appservice.bot_username; };
+        { appservice.bot_username = defaultConfig.appservice.bot_username; };
 
     startupScript = optionalString (hasAttrByPath [ "alembic" ] package)
       "${package.alembic}/bin/alembic -x config=$SETTINGS_FILE upgrade head\n"
-      + mautrix.startupScript;
+    + mautrix.startupScript;
     description = ''
       Same properties as mautrix-go. This will also upgrade the database on every run
     '';
