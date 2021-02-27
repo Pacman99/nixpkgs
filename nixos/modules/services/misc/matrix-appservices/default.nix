@@ -128,7 +128,7 @@ in
 
     assertions = mapAttrsToList
       (n: v: {
-        assertion = v.format != "other" && v.package != null;
+        assertion = v.format == "other" || v.package != null;
         message = "A package must be provided if a custom format is set";
       })
       cfg.services;
