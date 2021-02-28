@@ -16,8 +16,7 @@ let
       # Replace all references to $DIR to the dat directory
       settingsData = settingsFormat.generate "config.json" settings;
       settingsFile = "${dataDir}/config.json";
-      serviceDeps = [ "network-online.target" ] ++ serviceDependencies
-        ++ (optionals (cfg.homeserver != null) [ "${cfg.homeserver}.service" ]);
+      serviceDeps = [ "network-online.target" ] ++ serviceDependencies;
     in
     {
       description = "A matrix appservice for ${name}.";
@@ -25,6 +24,7 @@ let
       wantedBy = [ "multi-user.target" ];
       wants = serviceDeps;
       after = serviceDeps;
+      before = mkIf (cfg.homeserver != null) [ "${cfg.homeserver}.server" ];
 
       environment = {
         DIR = dataDir;
@@ -38,12 +38,10 @@ let
           -o ${settingsFile}
         chmod 640 ${settingsFile}
 
-        if [ ! -f '${registrationFile}' ]; then
+        ${optionalString (registerScript != "") ''
           ${registerScript}
-          if [ -f '${registrationFile}' ]; then
-            chmod 640 ${registrationFile}
-          fi
-        fi
+          chmod 640 ${registrationFile}
+        ''}
       '';
 
       script = startupScript;
@@ -142,7 +140,6 @@ in
     services = mkIf cfg.addRegistrationFiles {
       matrix-synapse.app_service_config_files = mkIf (cfg.homeserver == "matrix-synapse")
         (mapAttrsToList (n: _: "/var/lib/matrix-as-${n}/${n}-registration.yaml")
-        # To allow for bots that don't need registration
         (filterAttrs (_: v: v.registerScript != "") cfg.services));
     };
   };
