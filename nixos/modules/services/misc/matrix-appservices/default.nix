@@ -40,7 +40,9 @@ let
 
         if [ ! -f '${registrationFile}' ]; then
           ${registerScript}
-          chmod 640 ${registrationFile}
+          if [ -f '${registrationFile}' ]; then
+            chmod 640 ${registrationFile}
+          fi
         fi
       '';
 
