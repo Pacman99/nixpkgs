@@ -139,7 +139,9 @@ in
 
     services = mkIf cfg.addRegistrationFiles {
       matrix-synapse.app_service_config_files = mkIf (cfg.homeserver == "matrix-synapse")
-        (mapAttrsToList (n: _: "/var/lib/matrix-as-${n}/${n}-registration.yaml") cfg.services);
+        (mapAttrsToList (n: _: "/var/lib/matrix-as-${n}/${n}-registration.yaml")
+        # To allow for bots that don't need registration
+        (filterAttrs (_: v: v.registerScript != "") cfg.services));
     };
   };
 
