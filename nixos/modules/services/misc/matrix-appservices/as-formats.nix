@@ -6,7 +6,7 @@ let
     homeserverURL
     homeserverDomain;
   package = asConfig.package;
-  pname = package.pname;
+  pname = getName package;
   command = "${package}/bin/${pname}";
   getDefaultConfig = file: builtins.fromJSON (builtins.readFile
     (pkgs.runCommand file { } ''
