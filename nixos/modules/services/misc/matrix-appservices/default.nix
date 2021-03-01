@@ -24,6 +24,7 @@ let
       wantedBy = [ "multi-user.target" ];
       wants = serviceDeps;
       after = serviceDeps;
+      # Appservices don't need synapse up, but synapse exists if registration files are missing
       before = mkIf (cfg.homeserver != null) [ "${cfg.homeserver}.server" ];
 
       environment = {
@@ -117,10 +118,7 @@ in
         default = false;
         description = ''
           Whether to add the application service registration files to the homeserver configuration.
-          This should only be done after all application services have registered and the registration
-          files have been verified - they can be found in /var/lib/matrix-as-*.
-          Most homeservers will not start if any of the registration files are not found. So adding new
-          bridges usually takes multiple configuration switches.
+          It is recommended to verify appservice files, located in /var/lib/matrix-as-*, before adding them
         '';
       };
     };
