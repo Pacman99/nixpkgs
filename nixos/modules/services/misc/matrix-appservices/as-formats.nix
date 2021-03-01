@@ -163,12 +163,20 @@ in
 
   mautrix-python = {
     inherit (mautrix) registerScript;
+
     settings =
       let
         defaultConfig = getDefaultConfig "example-config.yaml";
       in
       recursiveUpdate mautrix.settings
-        { appservice.bot_username = defaultConfig.appservice.bot_username; };
+        {
+          appservice = {
+            inherit (defaultConfig.appservice)
+              bot_username
+              bot_displayname
+              bot_avatar;
+          };
+        };
 
     startupScript = optionalString (hasAttrByPath [ "alembic" ] package)
       "${package.alembic}/bin/alembic -x config=$SETTINGS_FILE upgrade head\n"
