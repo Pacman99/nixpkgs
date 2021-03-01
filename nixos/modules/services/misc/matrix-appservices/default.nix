@@ -39,8 +39,10 @@ let
         chmod 640 ${settingsFile}
 
         ${optionalString (registerScript != "") ''
-          ${registerScript}
-          chmod 640 ${registrationFile}
+          if [ ! -f ${registrationFile} ]; then
+            ${registerScript}
+            chmod 640 ${registrationFile}
+          fi
         ''}
       '';
 
