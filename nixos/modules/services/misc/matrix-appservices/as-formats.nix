@@ -24,12 +24,10 @@ let
     '';
 
     startupScript = ''
-      AS_TOKEN=$(cat $REGISTRATION_FILE | ${pkgs.yq}/bin/yq .as_token)
-      HS_TOKEN=$(cat $REGISTRATION_FILE | ${pkgs.yq}/bin/yq .hs_token)
       mv $SETTINGS_FILE $SETTINGS_FILE.tmp
-      cat $SETTINGS_FILE.tmp \
-        | ${pkgs.jq}/bin/jq 'setpath(["appservice", "as_token"]; '$AS_TOKEN')' \
-        | ${pkgs.jq}/bin/jq 'setpath(["appservice", "hs_token"]; '$HS_TOKEN')' \
+      ${pkgs.yq}/bin/yq -s '.[0].appservice.as_token = .[1].as_token
+        | .[0].appservice.hs_token = .[1].hs_token
+        | .[0]' $SETTINGS_FILE.tmp $REGISTRATION_FILE \
         > $SETTINGS_FILE
 
       ${command} --config=$SETTINGS_FILE \
