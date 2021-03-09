@@ -493,7 +493,7 @@
   ./services/misc/mame.nix
   ./services/misc/matrix-appservice-discord.nix
   ./services/misc/matrix-synapse.nix
-  ./services/misc/matrix-appservices
+  ./services/misc/matrix-appservices/default.nix
   ./services/misc/mautrix-telegram.nix
   ./services/misc/mbpfan.nix
   ./services/misc/mediatomb.nix
