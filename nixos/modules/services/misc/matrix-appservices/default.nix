@@ -74,6 +74,7 @@ in
     services.matrix-appservices = {
       services = mkOption {
         type = types.attrsOf asOpts;
+        default = {};
         example = ''
           whatsapp = {
             format = "mautrix";
